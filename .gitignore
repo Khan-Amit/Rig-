@@ -1,23 +1,188 @@
-### AL ###
-#Template for AL projects for Dynamics 365 Business Central
-#launch.json folder
-.vscode/
-#Cache folder
-.alcache/
-#Symbols folder
-.alpackages/
-#Snapshots folder
-.snapshots/
-#Testing Output folder
-.output/
-#Extension App-file
+# ============================================================
+# .gitignore for XMR RIG Project
+# ============================================================
+
+# === Arduino/PlatformIO ===
+*.ino.pre
+*.o
+*.d
+*.elf
+*.hex
+*.eep
+*.lst
+*.sym
+*.lss
+*.map
+*.tmp
+*.build/
+*.pioenvs/
+*.piolibdeps/
+*.vscode/.browse*
+*.vscode/ipch/
+*.vscode/launch.json
+*.vscode/tasks.json
+
+# === Compiled binaries ===
+*.exe
+*.out
 *.app
-#Rapid Application Development File
-rad.json
-#Translation Base-file
-*.g.xlf
-#License-files
-*.bclicense
-*.flf
-#Test results file
-TestResults.xml
+*.dll
+*.so
+*.dylib
+*.bin
+*.hex
+*.elf
+
+# === Build directories ===
+/build/
+/dist/
+/tmp/
+/temp/
+/out/
+/release/
+/debug/
+
+# === IDE files ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+.vs/
+*.suo
+*.user
+*.sln
+*.csproj
+*.vcxproj
+*.filters
+
+# === PlatformIO ===
+.pio/
+lib_deps/
+test/build/
+test/.pio/
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+.venv/
+.env/
+*.egg-info/
+
+# === Node.js ===
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# === Environment variables ===
+.env
+.env.local
+.env.production
+secrets.h
+config.h
+
+# === Logs ===
+*.log
+logs/
+*.log.*
+debug.log
+
+# === Wallet/Private keys ===
+*.wallet
+*.key
+*.priv
+*.pem
+*.crt
+*.p12
+*.pfx
+*.jks
+keystore/
+wallet/
+
+# === Large files ===
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.iso
+*.img
+*.bin
+*.dump
+*.dat
+*.pcap
+
+# === Dependencies ===
+lib/
+libraries/
+dependencies/
+external/
+
+# === Arduino specific ===
+*.ino.with_bootloader.bin
+*.ino.bootloader.bin
+*.ino.bin
+
+# === ESP32 specific ===
+*.sdkconfig
+*.sdkconfig.old
+sdkconfig
+partition_table/
+bootloader/
+
+# === Database ===
+*.db
+*.sqlite
+*.sqlite3
+
+# === Temporary files ===
+*.bak
+*.old
+*.orig
+*.rej
+*.patch
+*.diff
+
+# === Project specific ===
+test_output/
+screenshots/
+backup/
+config_local.h
+*_private.*
+
+# === Memory dumps ===
+*.core
+*.dump
+*.mdmp
+
+# === Compiled Python ===
+*.pyc
+*.pyd
+__pycache__/
+*.so
+
+# === Java ===
+*.class
+*.jar
+*.war
+*.ear
+target/
+
+# === Keep dashboard and README ===
+!index.html
+!README.md
+!rig.cpp
+!*.ino
+
+# === Keep documentation ===
+!docs/
+!*.md
+!LICENSE
