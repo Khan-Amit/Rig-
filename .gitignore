@@ -2,7 +2,7 @@
 # .gitignore for XMR RIG Project
 # ============================================================
 
-# === Arduino/PlatformIO ===
+# Arduino / ESP32
 *.ino.pre
 *.o
 *.d
@@ -17,12 +17,8 @@
 *.build/
 *.pioenvs/
 *.piolibdeps/
-*.vscode/.browse*
-*.vscode/ipch/
-*.vscode/launch.json
-*.vscode/tasks.json
 
-# === Compiled binaries ===
+# Compiled binaries
 *.exe
 *.out
 *.app
@@ -30,19 +26,16 @@
 *.so
 *.dylib
 *.bin
-*.hex
-*.elf
 
-# === Build directories ===
+# Build directories
 /build/
 /dist/
 /tmp/
-/temp/
 /out/
 /release/
 /debug/
 
-# === IDE files ===
+# IDE files
 .DS_Store
 Thumbs.db
 *.swp
@@ -53,136 +46,48 @@ Thumbs.db
 .vs/
 *.suo
 *.user
-*.sln
-*.csproj
-*.vcxproj
-*.filters
 
-# === PlatformIO ===
+# PlatformIO
 .pio/
 lib_deps/
-test/build/
-test/.pio/
 
-# === Python ===
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-venv/
-env/
-.venv/
-.env/
-*.egg-info/
-
-# === Node.js ===
-node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-package-lock.json
-yarn.lock
-
-# === Environment variables ===
+# Environment variables
 .env
 .env.local
-.env.production
 secrets.h
 config.h
 
-# === Logs ===
+# Logs
 *.log
 logs/
-*.log.*
-debug.log
 
-# === Wallet/Private keys ===
+# Wallet/Private keys
 *.wallet
 *.key
 *.priv
 *.pem
 *.crt
-*.p12
-*.pfx
-*.jks
-keystore/
-wallet/
 
-# === Large files ===
+# Large files
 *.zip
 *.tar.gz
 *.rar
 *.7z
 *.iso
 *.img
-*.bin
-*.dump
-*.dat
-*.pcap
 
-# === Dependencies ===
-lib/
-libraries/
-dependencies/
-external/
-
-# === Arduino specific ===
-*.ino.with_bootloader.bin
-*.ino.bootloader.bin
-*.ino.bin
-
-# === ESP32 specific ===
-*.sdkconfig
-*.sdkconfig.old
-sdkconfig
-partition_table/
-bootloader/
-
-# === Database ===
-*.db
-*.sqlite
-*.sqlite3
-
-# === Temporary files ===
+# Temporary files
 *.bak
 *.old
 *.orig
-*.rej
-*.patch
-*.diff
 
-# === Project specific ===
-test_output/
-screenshots/
-backup/
-config_local.h
-*_private.*
-
-# === Memory dumps ===
-*.core
-*.dump
-*.mdmp
-
-# === Compiled Python ===
-*.pyc
-*.pyd
-__pycache__/
-*.so
-
-# === Java ===
-*.class
-*.jar
-*.war
-*.ear
-target/
-
-# === Keep dashboard and README ===
+# Keep essential files
 !index.html
 !README.md
 !rig.cpp
 !*.ino
 
-# === Keep documentation ===
+# Keep docs
 !docs/
 !*.md
 !LICENSE
