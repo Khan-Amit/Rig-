@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMR Rig Monitor - World View</title>
+    <style>
+        /* ============================================================
+           RIG MONITOR STYLES - World View Dashboard v2.0
+           ============================================================ */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0f;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .dashboard {
+            max-width: 1200px;
+            width: 100%;
+            background: #111118;
+            border: 1px solid #00ff8844;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 0 60px #00ff8822;
+        }
+        
+        /* === HEADER === */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #00ff8844;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #00ff88;
+            text-shadow: 0 0 20px #00ff8844;
+            letter-spacing: 2px;
+        }
+        
+        .header .status {
+            font-size: 14px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            background: #00ff8822;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+        }
+        
+        .header .status.online {
+            background: #00ff8822;
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+        
+        .header .status.offline {
+            background: #ff335522;
+            border-color: #ff3355;
+            color: #ff3355;
+        }
+        
+        /* === POOL STATUS BAR === */
+        .pool-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1a1a24;
+            border: 1px solid #00ff8833;
+            border-radius: 8px;
+            padding: 10px 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .pool-bar .pool-label {
+            font-size: 11px;
+            color: #00ff8866;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .pool-bar .pool-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .pool-bar .pool-value.warning {
+            color: #ffaa00;
+        }
+        
+        .pool-bar .pool-value.danger {
+            color: #ff3355;
+        }
+        
+        /* === STATS GRID === */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: #1a1a24;
+            border: 1px solid #00ff8833;
+            border-radius: 8px;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        
+        .stat-card .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #00ff8866;
+            letter-spacing: 1px;
+        }
+        
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 5px;
+            color: #00ff88;
+        }
+        
+        .stat-card .value.warning {
+            color: #ffaa00;
+        }
+        
+        .stat-card .value.danger {
+            color: #ff3355;
+        }
+        
+        /* === CHANNEL GRID (12 Channels) === */
+        .channels {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .channel {
+            background: #1a1a24;
+            border: 1px solid #00ff8833;
+            border-radius: 6px;
+            padding: 12px 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .channel.winner {
+            border-color: #00ff88;
+            background: #00ff8811;
+            box-shadow: 0 0 20px #00ff8822;
+        }
+        
+        .channel.loser {
+            border-color: #ff335544;
+            background: #ff335511;
+        }
+        
+        .channel .ch-label {
+            font-size: 10px;
+            color: #00ff8866;
+            text-transform: uppercase;
+        }
+        
+        .channel .ch-value {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 4px 0;
+        }
+        
+        .channel .ch-status {
+            font-size: 18px;
+        }
+        
+        .channel .ch-status.win {
+            color: #00ff88;
+        }
+        
+        .channel .ch-status.lose {
+            color: #ff3355;
+        }
+        
+        /* === BINARY MAP === */
+        .binary-map {
+            background: #1a1a24;
+            border: 1px solid #00ff8833;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+        }
+        
+        .binary-map .map-label {
+            font-size: 11px;
+            color: #00ff8866;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        
+        .binary-map .map-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .binary-map .bit {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .binary-map .bit.on {
+            background: #00ff88;
+            color: #0a0a0f;
+        }
+        
+        .binary-map .bit.off {
+            background: #2a2a3a;
+            color: #555;
+        }
+        
+        /* === DOMINANT CHANNEL === */
+        .dominant {
+            background: #1a1a24;
+            border: 1px solid #ffaa0044;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .dominant .dom-label {
+            font-size: 11px;
+            color: #ffaa0066;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .dominant .dom-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffaa00;
+            margin-top: 4px;
+        }
+        
+        .dominant .dom-channel {
+            font-size: 14px;
+            color: #ffaa0088;
+        }
+        
+        /* === TREND / MOMENTUM === */
+        .trend {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            background: #1a1a24;
+            border: 1px solid #00ff8833;
+            border-radius: 8px;
+            padding: 15px 20px;
+        }
+        
+        .trend-item {
+            text-align: center;
+        }
+        
+        .trend-item .trend-label {
+            font-size: 10px;
+            color: #00ff8866;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .trend-item .trend-value {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+        
+        .trend-item .trend-value.up {
+            color: #00ff88;
+        }
+        
+        .trend-item .trend-value.down {
+            color: #ff3355;
+        }
+        
+        .trend-item .trend-value.stable {
+            color: #ffaa00;
+        }
+        
+        /* === RESPONSIVE === */
+        @media (max-width: 992px) {
+            .channels {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .channels {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .trend {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .pool-bar {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .channels {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .trend {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        /* === ANIMATION === */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px #00ff8822; }
+            50% { box-shadow: 0 0 40px #00ff8855; }
+        }
+        
+        .updating {
+            animation: pulse 0.3s ease;
+        }
+        
+        .winner .ch-value {
+            animation: glow 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard" id="dashboard">
+        
+        <!-- ============================================================
+        HEADER
+        ============================================================ -->
+        <div class="header">
+            <h1>⛏️ XMR RIG · WORLD VIEW</h1>
+            <div class="status online" id="statusBadge">● ONLINE</div>
+        </div>
+        
+        <!-- ============================================================
+        POOL STATUS BAR
+        ============================================================ -->
+        <div class="pool-bar" id="poolBar">
+            <div>
+                <span class="pool-label">Pool</span>
+                <span class="pool-value" id="poolStatus">Connecting...</span>
+            </div>
+            <div>
+                <span class="pool-label">Hashrate</span>
+                <span class="pool-value" id="poolHashrate">0 KH/s</span>
+            </div>
+            <div>
+                <span class="pool-label">Shares</span>
+                <span class="pool-value" id="poolShares">0/0</span>
+            </div>
+            <div>
+                <span class="pool-label">Difficulty</span>
+                <span class="pool-value" id="poolDifficulty">0</span>
+            </div>
+            <div>
+                <span class="pool-label">Uptime</span>
+                <span class="pool-value" id="poolUptime">00:00:00</span>
+            </div>
+        </div>
+        
+        <!-- ============================================================
+        STATS GRID
+        ============================================================ -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Winners</div>
+                <div class="value" id="winnersCount">0/12</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Selection Power</div>
+                <div class="value" id="selectionPower">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Dominant Channel</div>
+                <div class="value" id="dominantChannel">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Rig Health</div>
+                <div class="value" id="rigHealth">WAITING</div>
+            </div>
+        </div>
+        
+        <!-- ============================================================
+        CHANNELS GRID (12 Channels)
+        ============================================================ -->
+        <div class="channels" id="channelsGrid">
+            <!-- Generated by JavaScript -->
+        </div>
+        
+        <!-- ============================================================
+        BINARY MAP
+        ============================================================ -->
+        <div class="binary-map">
+            <div class="map-label">Binary Map · 1 = Winner · 0 = Loser</div>
+            <div class="map-row" id="binaryMap">
+                <!-- Generated by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- ============================================================
+        DOMINANT CHANNEL
+        ============================================================ -->
+        <div class="dominant">
+            <div class="dom-label">🏆 Dominant Channel · Competitive Edge</div>
+            <div class="dom-value" id="dominantValue">--</div>
+            <div class="dom-channel" id="dominantLabel">Channel --</div>
+        </div>
+        
+        <!-- ============================================================
+        TREND / MOMENTUM
+        ============================================================ -->
+        <div class="trend">
+            <div class="trend-item">
+                <div class="trend-label">Momentum</div>
+                <div class="trend-value" id="trendValue">--</div>
+            </div>
+            <div class="trend-item">
+                <div class="trend-label">Spread</div>
+                <div class="trend-value" id="spreadValue">--</div>
+            </div>
+            <div class="trend-item">
+                <div class="trend-label">Threshold</div>
+                <div class="trend-value" id="thresholdValue">2048</div>
+            </div>
+            <div class="trend-item">
+                <div class="trend-label">Last Update</div>
+                <div class="trend-value" id="updateTime">--</div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- ============================================================
+    JAVASCRIPT - World View Engine v2.0
+    ============================================================ -->
+    <script>
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        const NUM_CHANNELS = 12;
+        const THRESHOLD = 2048;
+        const UPDATE_INTERVAL = 2000;
+        const API_URL = '/api/data';  // ESP32 API endpoint
+        
+        // Channel labels
+        const CHANNEL_LABELS = [
+            'GPU0', 'GPU1', 'GPU2', 'GPU3',
+            'PSU0', 'PSU1', 'PSU2', 'PSU3',
+            'TMP0', 'TMP1', 'TMP2', 'TMP3'
+        ];
+        
+        // Channel types
+        const CHANNEL_TYPES = [
+            'gpu', 'gpu', 'gpu', 'gpu',
+            'psu', 'psu', 'psu', 'psu',
+            'tmp', 'tmp', 'tmp', 'tmp'
+        ];
+        
+        // ============================================================
+        // STATE
+        // ============================================================
+        let currentData = [];
+        let currentWinners = [];
+        let updateCount = 0;
+        let isRealData = false;
+        let startTime = Date.now();
+        let poolData = {
+            hashrate: 0,
+            accepted: 0,
+            rejected: 0,
+            difficulty: 0,
+            status: 'Disconnected'
+        };
+        
+        // ============================================================
+        // FETCH REAL DATA FROM ESP32
+        // ============================================================
+        async function fetchRealData() {
+            try {
+                const response = await fetch(API_URL);
+                if(response.ok) {
+                    const data = await response.json();
+                    if(data.values && data.values.length === NUM_CHANNELS) {
+                        currentData = data.values;
+                        currentWinners = data.winners || [];
+                        poolData = {
+                            hashrate: data.hashrate || 0,
+                            accepted: data.accepted || 0,
+                            rejected: data.rejected || 0,
+                            difficulty: data.difficulty || 0,
+                            status: data.poolStatus || 'Connected'
+                        };
+                        isRealData = true;
+                        return true;
+                    }
+                }
+                return false;
+            } catch(e) {
+                return false;
+            }
+        }
+        
+        // ============================================================
+        // GENERATE SIMULATED DATA (Fallback)
+        // ============================================================
+        function generateRigData() {
+            const data = [];
+            for(let i = 0; i < NUM_CHANNELS; i++) {
+                if(i < 4) {
+                    data.push(Math.floor(Math.random() * 2000) + 1500);
+                } else if(i < 8) {
+                    data.push(Math.floor(Math.random() * 1000) + 1800);
+                } else {
+                    data.push(Math.floor(Math.random() * 2200) + 800);
+                }
+            }
+            
+            // Force patterns for demonstration
+            data[0] = 3162 + Math.floor(Math.random() * 100) - 50;
+            data[1] = 2880 + Math.floor(Math.random() * 100) - 50;
+            data[2] = 1244 + Math.floor(Math.random() * 100) - 50;
+            data[3] = 2919 + Math.floor(Math.random() * 100) - 50;
+            data[4] = 1761 + Math.floor(Math.random() * 100) - 50;
+            data[5] = 3188 + Math.floor(Math.random() * 100) - 50;
+            data[6] = 2285 + Math.floor(Math.random() * 100) - 50;
+            data[7] = 1340 + Math.floor(Math.random() * 100) - 50;
+            data[8] = 914 + Math.floor(Math.random() * 100) - 50;
+            data[9] = 2735 + Math.floor(Math.random() * 100) - 50;
+            data[10] = 1030 + Math.floor(Math.random() * 100) - 50;
+            data[11] = 2472 + Math.floor(Math.random() * 100) - 50;
+            
+            // Simulate pool data
+            poolData.hashrate = 12500 + Math.random() * 5000;
+            if(Math.random() > 0.7) poolData.accepted++;
+            poolData.rejected = Math.floor(Math.random() * 5);
+            poolData.difficulty = 120000 + Math.random() * 20000;
+            poolData.status = 'Simulated';
+            
+            return data;
+        }
+        
+        // ============================================================
+        // BINARY DECISION ENGINE
+        // ============================================================
+        function processBinaryLogic(data) {
+            const winners = [];
+            let winnerCount = 0;
+            
+            for(let i = 0; i < data.length; i++) {
+                let isWinner;
+                if(i < 8) {
+                    isWinner = data[i] > THRESHOLD;
+                } else {
+                    isWinner = data[i] < THRESHOLD;
+                }
+                winners.push(isWinner);
+                if(isWinner) winnerCount++;
+            }
+            
+            return { winners, winnerCount };
+        }
+        
+        // ============================================================
+        // FIND DOMINANT
+        // ============================================================
+        function findDominant(data) {
+            let maxIdx = 0;
+            let maxVal = data[0];
+            let minVal = data[0];
+            
+            for(let i = 1; i < data.length; i++) {
+                if(data[i] > maxVal) {
+                    maxVal = data[i];
+                    maxIdx = i;
+                }
+                if(data[i] < minVal) {
+                    minVal = data[i];
+                }
+            }
+            
+            return { index: maxIdx, value: maxVal, min: minVal, spread: maxVal - minVal };
+        }
+        
+        // ============================================================
+        // CALCULATE TREND
+        // ============================================================
+        function calculateTrend(data) {
+            const half = Math.floor(data.length / 2);
+            let sum1 = 0, sum2 = 0;
+            for(let i = 0; i < half; i++) {
+                sum1 += data[i];
+                sum2 += data[i + half];
+            }
+            const avg1 = sum1 / half;
+            const avg2 = sum2 / half;
+            
+            const diff = avg2 - avg1;
+            const percent = (diff / (avg1 + 1)) * 100;
+            
+            let direction = 'stable';
+            if(percent > 5) direction = 'up';
+            else if(percent < -5) direction = 'down';
+            
+            return { direction, percent, diff };
+        }
+        
+        // ============================================================
+        // FORMAT UPTIME
+        // ============================================================
+        function formatUptime(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+        
+        // ============================================================
+        // RENDER UI
+        // ============================================================
+        function renderUI(data, result, dominant, trend) {
+            const { winners, winnerCount } = result;
+            const selectionRatio = (winnerCount / NUM_CHANNELS * 100);
+            const isHealthy = winnerCount > (NUM_CHANNELS / 2);
+            
+            // === Update Stats ===
+            document.getElementById('winnersCount').textContent = `${winnerCount}/${NUM_CHANNELS}`;
+            document.getElementById('winnersCount').className = `value ${winnerCount < 4 ? 'danger' : winnerCount < 6 ? 'warning' : ''}`;
+            
+            document.getElementById('selectionPower').textContent = `${selectionRatio.toFixed(1)}%`;
+            document.getElementById('selectionPower').className = `value ${selectionRatio < 40 ? 'danger' : selectionRatio < 55 ? 'warning' : ''}`;
+            
+            document.getElementById('dominantChannel').textContent = CHANNEL_LABELS[dominant.index];
+            
+            const healthText = isHealthy ? '✅ OPTIMAL' : '⚠️ WARNING';
+            document.getElementById('rigHealth').textContent = healthText;
+            document.getElementById('rigHealth').className = `value ${isHealthy ? '' : 'danger'}`;
+            
+            // === Update Pool Status ===
+            const poolStatusEl = document.getElementById('poolStatus');
+            poolStatusEl.textContent = poolData.status;
+            poolStatusEl.className = `pool-value ${poolData.status === 'Connected' ? '' : poolData.status === 'Simulated' ? 'warning' : 'danger'}`;
+            
+            document.getElementById('poolHashrate').textContent = `${(poolData.hashrate / 1000).toFixed(1)} KH/s`;
+            document.getElementById('poolShares').textContent = `${poolData.accepted}/${poolData.rejected}`;
+            document.getElementById('poolDifficulty').textContent = Math.round(poolData.difficulty);
+            document.getElementById('poolUptime').textContent = formatUptime(Date.now() - startTime);
+            
+            // === Update Channels Grid ===
+            const grid = document.getElementById('channelsGrid');
+            grid.innerHTML = '';
+            for(let i = 0; i < NUM_CHANNELS; i++) {
+                const div = document.createElement('div');
+                div.className = `channel ${winners[i] ? 'winner' : 'loser'}`;
+                div.innerHTML = `
+                    <div class="ch-label">${CHANNEL_LABELS[i]}</div>
+                    <div class="ch-value">${data[i]}</div>
+                    <div class="ch-status ${winners[i] ? 'win' : 'lose'}">${winners[i] ? '▼ WIN' : '▲ LOSE'}</div>
+                `;
+                grid.appendChild(div);
+            }
+            
+            // === Update Binary Map ===
+            const map = document.getElementById('binaryMap');
+            map.innerHTML = '';
+            for(let i = 0; i < NUM_CHANNELS; i++) {
+                const bit = document.createElement('div');
+                bit.className = `bit ${winners[i] ? 'on' : 'off'}`;
+                bit.textContent = winners[i] ? '1' : '0';
+                bit.title = `${CHANNEL_LABELS[i]}: ${data[i]}`;
+                map.appendChild(bit);
+            }
+            
+            // === Update Dominant ===
+            document.getElementById('dominantValue').textContent = dominant.value;
+            document.getElementById('dominantLabel').textContent = `Channel ${dominant.index} · ${CHANNEL_LABELS[dominant.index]}`;
+            
+            // === Update Trend ===
+            const trendEl = document.getElementById('trendValue');
+            trendEl.textContent = trend.direction.toUpperCase();
+            trendEl.className = `trend-value ${trend.direction}`;
+            
+            document.getElementById('spreadValue').textContent = dominant.spread;
+            document.getElementById('thresholdValue').textContent = THRESHOLD;
+            
+            // === Update Time ===
+            const now = new Date();
+            document.getElementById('updateTime').textContent = now.toLocaleTimeString();
+            
+            // === Update Status Badge ===
+            const statusBadge = document.getElementById('statusBadge');
+            if(isRealData) {
+                statusBadge.textContent = `● REAL DATA · #${updateCount}`;
+                statusBadge.className = 'status online';
+            } else {
+                statusBadge.textContent = `● SIMULATED · #${updateCount}`;
+                statusBadge.className = 'status offline';
+            }
+        }
+        
+        // ============================================================
+        // MAIN UPDATE LOOP
+        // ============================================================
+        async function updateDashboard() {
+            updateCount++;
+            
+            // Try to fetch real data from ESP32
+            const hasRealData = await fetchRealData();
+            
+            let data;
+            let result;
+            let dominant;
+            let trend;
+            
+            if(hasRealData && currentData.length === NUM_CHANNELS) {
+                // Use real data
+                data = currentData;
+                if(currentWinners.length === NUM_CHANNELS) {
+                    result = { winners: currentWinners, winnerCount: currentWinners.filter(w => w).length };
+                } else {
+                    result = processBinaryLogic(data);
+                }
+                dominant = findDominant(data);
+                trend = calculateTrend(data);
+                isRealData = true;
+            } else {
+                // Use simulated data
+                data = generateRigData();
+                currentData = data;
+                result = processBinaryLogic(data);
+                currentWinners = result.winners;
+                dominant = findDominant(data);
+                trend = calculateTrend(data);
+                isRealData = false;
+            }
+            
+            // Render UI
+            renderUI(data, result, dominant, trend);
+        }
+        
+        // ============================================================
+        // INITIALIZE
+        // ============================================================
+        function init() {
+            // Initial render
+            updateDashboard();
+            
+            // Start auto-update
+            setInterval(updateDashboard, UPDATE_INTERVAL);
+            
+            console.log('=== WORLD VIEW RIG MONITOR v2.0 ===');
+            console.log(`Channels: ${NUM_CHANNELS}`);
+            console.log(`Threshold: ${THRESHOLD}`);
+            console.log(`Update Interval: ${UPDATE_INTERVAL}ms`);
+            console.log(`API Endpoint: ${API_URL}`);
+            console.log('======================================');
+            
+            // Check for API connection
+            fetch(API_URL)
+                .then(r => r.json())
+                .then(data => {
+                    console.log('✅ ESP32 API Connected!');
+                    console.log('Data:', data);
+                })
+                .catch(e => {
+                    console.log('⚠️ ESP32 API Not Found - Using Simulated Data');
+                    console.log('To connect ESP32, upload rig.cpp with web server');
+                });
+        }
+        
+        // Start when DOM is ready
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
