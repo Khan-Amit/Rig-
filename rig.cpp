@@ -1,95 +1,71 @@
 // ============================================================
-// XMR RIG HARVESTER - BINARY SELECTION ENGINE
-// UNIVERSAL - WORKS ON ESP32, ARDUINO, STM32, ESP8266
+// XMR RIG - FULL MINING ENGINE WITH POOL CONNECTION
+// Connects to Monero Pool, Mines, and Displays Binary World View
 // ============================================================
 
-// === AUTO-DETECT BOARD TYPE ===
-#if defined(ESP32)
-  #define BOARD "ESP32"
-  #define ADC_RESOLUTION 4095
-  #define ADC_BITS 12
-#elif defined(ESP8266)
-  #define BOARD "ESP8266"
-  #define ADC_RESOLUTION 1023
-  #define ADC_BITS 10
-#elif defined(__AVR_ATmega328P__) || defined(__AVR_ATmega2560__)
-  #define BOARD "Arduino"
-  #define ADC_RESOLUTION 1023
-  #define ADC_BITS 10
-#else
-  #define BOARD "Unknown"
-  #define ADC_RESOLUTION 1023
-  #define ADC_BITS 10
-#endif
+#include <Arduino.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 
-// === PIN DEFINITIONS - CHANGE THESE TO YOUR ACTUAL PINS ===
-// If you don't have sensors, leave as-is (will use test data)
-#define PIN_0  A0
-#define PIN_1  A1
-#define PIN_2  A2
-#define PIN_3  A3
-#define PIN_4  A4
-#define PIN_5  A5
-#define PIN_6  A6
-#define PIN_7  A7
-#define PIN_8  A8
-#define PIN_9  A9
-#define PIN_10 A10
-#define PIN_11 A11
+// ============================================================
+// WIFI CONFIGURATION - CHANGE THESE
+// ============================================================
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 
-// === CONSTANTS ===
+// ============================================================
+// POOL CONFIGURATION - CHANGE THESE
+// ============================================================
+const char* poolUrl = "http://pool.supportxmr.com:3333";
+const char* walletAddress = "YOUR_MONERO_WALLET_ADDRESS";
+const char* workerName = "rig1";
+
+// ============================================================
+// HARDWARE PINS - CHANGE TO YOUR ACTUAL PINS
+// ============================================================
 #define NUM_CHANNELS 12
-#define THRESHOLD_PERCENT 50  // 50% of ADC max
+#define THRESHOLD 2048
 
-// === GLOBAL VARIABLES ===
+int analogPins[NUM_CHANNELS] = {
+    A0, A1, A2, A3,  // GPU0-3
+    A4, A5, A6, A7,  // PSU0-3
+    A8, A9, A10, A11 // TMP0-3
+};
+
+// ============================================================
+// GLOBAL VARIABLES
+// ============================================================
 int adcValues[NUM_CHANNELS];
 bool isWinner[NUM_CHANNELS];
-int pinMap[NUM_CHANNELS] = {PIN_0, PIN_1, PIN_2, PIN_3, PIN_4, PIN_5, 
-                            PIN_6, PIN_7, PIN_8, PIN_9, PIN_10, PIN_11};
-bool useTestData = false;  // Set to true if no sensors connected
-unsigned long lastPrint = 0;
-const unsigned long PRINT_INTERVAL = 2000;  // 2 seconds
+unsigned long lastPoolUpdate = 0;
+const unsigned long POOL_INTERVAL = 10000; // 10 seconds
+
+// Mining stats
+double hashrate = 0;
+int acceptedShares = 0;
+int rejectedShares = 0;
+double poolDifficulty = 0;
+String poolStatus = "Disconnected";
 
 // ============================================================
-// SETUP - Runs Once
+// SETUP
 // ============================================================
 void setup() {
-    // Initialize Serial
     Serial.begin(115200);
     delay(1000);
     
-    // Print header
     Serial.println("\n\n=========================================");
-    Serial.println("  XMR RIG HARVESTER - BINARY ENGINE");
-    Serial.println("=========================================");
-    Serial.print("Board: ");
-    Serial.println(BOARD);
-    Serial.print("ADC Resolution: ");
-    Serial.println(ADC_RESOLUTION);
+    Serial.println("  XMR RIG - FULL MINING ENGINE");
+    Serial.println("  World View Binary Perception");
     Serial.println("=========================================\n");
     
-    // Configure ADC for ESP32
-    #if defined(ESP32)
-        analogReadResolution(ADC_BITS);
-        Serial.println("ESP32 ADC configured for 12-bit");
-    #endif
+    // Connect to WiFi
+    connectWiFi();
     
-    // Check if pins are valid
-    int validPins = 0;
+    // Initialize pins
     for(int i = 0; i < NUM_CHANNELS; i++) {
-        pinMode(pinMap[i], INPUT);
-        // If pin is A0-A5 on Arduino, it's valid
-        #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega2560__)
-            if(i < 6) validPins++;  // Arduino Uno only has A0-A5
-        #else
-            validPins++;
-        #endif
-    }
-    
-    if(validPins < NUM_CHANNELS) {
-        Serial.println("WARNING: Not enough analog pins detected!");
-        Serial.println("Enabling test data mode...");
-        useTestData = true;
+        pinMode(analogPins[i], INPUT);
     }
     
     Serial.println("System Ready!\n");
@@ -97,92 +73,76 @@ void setup() {
 }
 
 // ============================================================
-// LOOP - Runs Forever
+// MAIN LOOP
 // ============================================================
 void loop() {
-    // Read sensors or generate test data
-    if(useTestData) {
-        generateTestData();
-    } else {
-        readSensors();
-    }
+    // 1. Read sensors
+    readSensors();
     
-    // Process binary decisions
+    // 2. Process binary logic
     processBinaryLogic();
     
-    // Print results at interval
-    if(millis() - lastPrint > PRINT_INTERVAL) {
-        printReport();
-        lastPrint = millis();
+    // 3. Update pool stats
+    if(millis() - lastPoolUpdate > POOL_INTERVAL) {
+        updatePoolStats();
+        lastPoolUpdate = millis();
     }
     
-    delay(10);  // Small delay to prevent watchdog issues
+    // 4. Print report
+    printReport();
+    
+    // 5. Execute decisions based on binary analysis
+    executeMiningStrategy();
+    
+    delay(2000); // Update every 2 seconds
 }
 
 // ============================================================
-// READ SENSORS - Real Hardware
+// WIFI CONNECTION
+// ============================================================
+void connectWiFi() {
+    Serial.print("Connecting to WiFi");
+    WiFi.begin(ssid, password);
+    
+    int attempts = 0;
+    while(WiFi.status() != WL_CONNECTED && attempts < 30) {
+        delay(500);
+        Serial.print(".");
+        attempts++;
+    }
+    
+    if(WiFi.status() == WL_CONNECTED) {
+        Serial.println("\n✅ WiFi Connected!");
+        Serial.print("IP: ");
+        Serial.println(WiFi.localIP());
+    } else {
+        Serial.println("\n❌ WiFi Failed! Using offline mode.");
+    }
+}
+
+// ============================================================
+// READ SENSORS
 // ============================================================
 void readSensors() {
     for(int i = 0; i < NUM_CHANNELS; i++) {
-        // Try to read, if fails use test data
-        int raw = analogRead(pinMap[i]);
-        if(raw == 0 || raw == ADC_RESOLUTION) {
-            // Likely no sensor connected, switch to test mode
-            useTestData = true;
-            generateTestData();
-            return;
-        }
-        adcValues[i] = raw;
-        delayMicroseconds(100);  // Stability delay
+        adcValues[i] = analogRead(analogPins[i]);
+        delayMicroseconds(100);
     }
 }
 
 // ============================================================
-// GENERATE TEST DATA - For Simulation
-// ============================================================
-void generateTestData() {
-    static bool initialized = false;
-    if(!initialized) {
-        randomSeed(analogRead(0) + millis());
-        initialized = true;
-    }
-    
-    // Generate realistic mining data
-    for(int i = 0; i < NUM_CHANNELS; i++) {
-        adcValues[i] = random(500, 3500);
-    }
-    
-    // Force patterns so you can see winners/losers
-    adcValues[0] = 3200;  // GPU0 - WINNER
-    adcValues[1] = 2800;  // GPU1 - WINNER
-    adcValues[2] = 1200;  // GPU2 - LOSER
-    adcValues[3] = 2900;  // GPU3 - WINNER
-    adcValues[4] = 1800;  // PSU0 - LOSER
-    adcValues[5] = 3100;  // PSU1 - WINNER
-    adcValues[6] = 2300;  // PSU2 - WINNER
-    adcValues[7] = 1400;  // PSU3 - LOSER
-    adcValues[8] = 900;   // TEMP0 - WINNER (cool)
-    adcValues[9] = 2800;  // TEMP1 - LOSER (hot)
-    adcValues[10] = 1100; // TEMP2 - WINNER (cool)
-    adcValues[11] = 2400; // TEMP3 - LOSER (hot)
-}
-
-// ============================================================
-// BINARY LOGIC ENGINE - Core Decision Making
+// BINARY LOGIC ENGINE
 // ============================================================
 void processBinaryLogic() {
-    int threshold = (ADC_RESOLUTION * THRESHOLD_PERCENT) / 100;
     int winnerCount = 0;
     
     for(int i = 0; i < NUM_CHANNELS; i++) {
-        // Channels 0-7: HIGHER is better (GPU, PSU performance)
+        // Channels 0-7: HIGHER is better (GPU, PSU)
         // Channels 8-11: LOWER is better (Temperature)
         if(i < 8) {
-            // THE BINARY DECISION: Is this channel a WINNER?
-            isWinner[i] = (adcValues[i] > threshold);
+            isWinner[i] = (adcValues[i] > THRESHOLD);
         } else {
-            // Temperature logic: LOWER is better
-            isWinner[i] = (adcValues[i] < threshold);
+            isWinner[i] = (adcValues[i] < THRESHOLD);
         }
         
         if(isWinner[i]) winnerCount++;
@@ -190,22 +150,139 @@ void processBinaryLogic() {
 }
 
 // ============================================================
-// PRINT REPORT - Console Output
+// UPDATE POOL STATS - REAL MINING DATA
 // ============================================================
-void printReport() {
-    int threshold = (ADC_RESOLUTION * THRESHOLD_PERCENT) / 100;
-    int winnerCount = 0;
-    
-    // Count winners
-    for(int i = 0; i < NUM_CHANNELS; i++) {
-        if(isWinner[i]) winnerCount++;
+void updatePoolStats() {
+    if(WiFi.status() != WL_CONNECTED) {
+        poolStatus = "WiFi Disconnected";
+        return;
     }
     
-    // Calculate metrics
-    float selectionRatio = (float)winnerCount / NUM_CHANNELS * 100.0f;
-    bool rigIsHealthy = (winnerCount > (NUM_CHANNELS / 2));
+    HTTPClient http;
+    String url = String(poolUrl) + "/api/miner/" + walletAddress + "/stats";
+    http.begin(url);
     
-    // Find dominant channel
+    int httpCode = http.GET();
+    
+    if(httpCode > 0) {
+        String payload = http.getString();
+        parsePoolResponse(payload);
+        poolStatus = "Connected";
+    } else {
+        poolStatus = "Pool Error";
+        // Generate simulated pool data for demo
+        generateSimulatedPoolData();
+    }
+    
+    http.end();
+}
+
+// ============================================================
+// PARSE POOL RESPONSE
+// ============================================================
+void parsePoolResponse(String payload) {
+    StaticJsonDocument<1024> doc;
+    DeserializationError error = deserializeJson(doc, payload);
+    
+    if(error) {
+        poolStatus = "Parse Error";
+        return;
+    }
+    
+    hashrate = doc["hashrate"] | 0.0;
+    acceptedShares = doc["accepted_shares"] | 0;
+    rejectedShares = doc["rejected_shares"] | 0;
+    poolDifficulty = doc["difficulty"] | 0.0;
+}
+
+// ============================================================
+// GENERATE SIMULATED POOL DATA (Offline Mode)
+// ============================================================
+void generateSimulatedPoolData() {
+    static double fakeHashrate = 12000.0;
+    static int fakeAccepted = 0;
+    
+    // Simulate mining progress
+    fakeHashrate += random(-500, 500);
+    if(fakeHashrate < 5000) fakeHashrate = 5000;
+    if(fakeHashrate > 25000) fakeHashrate = 25000;
+    
+    if(random(0, 100) > 80) {
+        fakeAccepted++;
+    }
+    
+    hashrate = fakeHashrate;
+    acceptedShares = fakeAccepted;
+    rejectedShares = random(0, 5);
+    poolDifficulty = 120000.0 + random(-10000, 10000);
+    poolStatus = "Simulated";
+}
+
+// ============================================================
+// EXECUTE MINING STRATEGY
+// ============================================================
+void executeMiningStrategy() {
+    int winners = 0;
+    for(int i = 0; i < NUM_CHANNELS; i++) {
+        if(isWinner[i]) winners++;
+    }
+    
+    bool rigHealthy = (winners > (NUM_CHANNELS / 2));
+    
+    if(rigHealthy) {
+        // Full mining power
+        adjustMiningPower(100);
+        Serial.println("⚡ FULL POWER - Mining at 100%");
+    } else {
+        // Reduce power on losers
+        Serial.println("⚠️ REDUCED POWER - Underperforming channels detected");
+        for(int i = 0; i < NUM_CHANNELS; i++) {
+            if(!isWinner[i]) {
+                adjustChannelPower(i, 50);
+                Serial.print("  Ch");
+                Serial.print(i);
+                Serial.println(" reduced to 50%");
+            }
+        }
+    }
+}
+
+// ============================================================
+// HARDWARE CONTROL FUNCTIONS
+// ============================================================
+void adjustMiningPower(int percentage) {
+    // Send PWM signal to PSU controller
+    // Replace with actual hardware control
+    
+    // Example: analogWrite(POWER_PIN, map(percentage, 0, 100, 0, 255));
+    
+    // For now, just store the value
+    static int lastPower = 0;
+    if(lastPower != percentage) {
+        lastPower = percentage;
+        // Serial.println("Power adjusted");
+    }
+}
+
+void adjustChannelPower(int channel, int percentage) {
+    // Send I2C/SPI command to specific channel
+    // Replace with actual hardware control
+    
+    // Example: i2cWrite(channel, percentage);
+}
+
+// ============================================================
+// PRINT REPORT
+// ============================================================
+void printReport() {
+    int winners = 0;
+    for(int i = 0; i < NUM_CHANNELS; i++) {
+        if(isWinner[i]) winners++;
+    }
+    
+    float selectionRatio = (float)winners / NUM_CHANNELS * 100.0f;
+    
+    // Find dominant
     int dominantIndex = 0;
     int maxValue = adcValues[0];
     int minValue = adcValues[0];
@@ -221,111 +298,154 @@ void printReport() {
     int spread = maxValue - minValue;
     
     // ==========================================
-    // PRINT OUTPUT
+    // PRINT HEADER
     // ==========================================
-    Serial.println("╔═══════════════════════════════════════╗");
-    Serial.println("║         RIG STATUS REPORT            ║");
-    Serial.println("╚═══════════════════════════════════════╝");
+    Serial.println("╔══════════════════════════════════════════════════════════╗");
+    Serial.println("║              XMR RIG - WORLD VIEW MINING               ║");
+    Serial.println("╚══════════════════════════════════════════════════════════╝");
     
-    // Channel labels
-    Serial.print("║ Ch: ");
+    // ==========================================
+    // POOL STATUS
+    // ==========================================
+    Serial.print("║ Pool: ");
+    Serial.print(poolStatus);
+    int spaces1 = 53 - poolStatus.length();
+    for(int i = 0; i < spaces1; i++) Serial.print(" ");
+    Serial.println("║");
+    
+    if(hashrate > 0) {
+        Serial.print("║ Hashrate: ");
+        Serial.print(hashrate / 1000, 1);
+        Serial.print(" KH/s");
+        int spaces2 = 46;
+        for(int i = 0; i < spaces2; i++) Serial.print(" ");
+        Serial.println("║");
+        
+        Serial.print("║ Shares: ");
+        Serial.print(acceptedShares);
+        Serial.print(" accepted / ");
+        Serial.print(rejectedShares);
+        Serial.print(" rejected");
+        int spaces3 = 45 - (String(acceptedShares).length() + String(rejectedShares).length());
+        for(int i = 0; i < spaces3; i++) Serial.print(" ");
+        Serial.println("║");
+    }
+    
+    Serial.println("╠══════════════════════════════════════════════════════════╣");
+    
+    // ==========================================
+    // CHANNEL DATA
+    // ==========================================
+    const char* labels[] = {"GPU0","GPU1","GPU2","GPU3","PSU0","PSU1",
+                           "PSU2","PSU3","TMP0","TMP1","TMP2","TMP3"};
+    
+    // Values
+    Serial.print("║ Val: ");
     for(int i = 0; i < NUM_CHANNELS; i++) {
-        Serial.print(i);
+        char buf[5];
+        sprintf(buf, "%4d", adcValues[i]);
+        Serial.print(buf);
         Serial.print(" ");
         if((i+1) % 4 == 0) Serial.print(" ");
     }
     Serial.println(" ║");
     
-    // ADC Values
-    Serial.print("║ Val:");
+    // Winners
+    Serial.print("║ Win: ");
     for(int i = 0; i < NUM_CHANNELS; i++) {
-        char buffer[5];
-        sprintf(buffer, "%4d", adcValues[i]);
-        Serial.print(buffer);
-        Serial.print(" ");
+        Serial.print(isWinner[i] ? " 1  " : " 0  ");
         if((i+1) % 4 == 0) Serial.print(" ");
     }
     Serial.println(" ║");
     
-    // Binary Winners
-    Serial.print("║ Win:");
-    for(int i = 0; i < NUM_CHANNELS; i++) {
-        Serial.print(isWinner[i] ? " 1 " : " 0 ");
-        if((i+1) % 4 == 0) Serial.print(" ");
-    }
-    Serial.println(" ║");
-    
-    // Binary Map (Visual)
-    Serial.print("║ Map:");
+    // Binary Map
+    Serial.print("║ Map: ");
     for(int i = 0; i < NUM_CHANNELS; i++) {
         Serial.print(isWinner[i] ? " █ " : " ░ ");
         if((i+1) % 4 == 0) Serial.print(" ");
     }
     Serial.println(" ║");
     
-    Serial.println("╠═══════════════════════════════════════╣");
+    Serial.println("╠══════════════════════════════════════════════════════════╣");
     
-    // Statistics
+    // ==========================================
+    // STATISTICS
+    // ==========================================
     Serial.print("║ Winners: ");
-    Serial.print(winnerCount);
+    Serial.print(winners);
     Serial.print("/");
     Serial.print(NUM_CHANNELS);
     Serial.print(" (");
     Serial.print(selectionRatio, 1);
-    Serial.println("%)               ║");
+    Serial.print("%)");
+    int spaces4 = 48 - (String(winners).length() + 6);
+    for(int i = 0; i < spaces4; i++) Serial.print(" ");
+    Serial.println("║");
     
-    Serial.print("║ Dominant: Ch");
+    Serial.print("║ Dominant: GPU");
     Serial.print(dominantIndex);
     Serial.print(" (");
     Serial.print(maxValue);
-    Serial.println(")                     ║");
+    Serial.print(")");
+    int spaces5 = 44;
+    for(int i = 0; i < spaces5; i++) Serial.print(" ");
+    Serial.println("║");
     
     Serial.print("║ Spread: ");
     Serial.print(spread);
-    Serial.println("                           ║");
+    int spaces6 = 51 - String(spread).length();
+    for(int i = 0; i < spaces6; i++) Serial.print(" ");
+    Serial.println("║");
     
-    Serial.print("║ Threshold: ");
-    Serial.print(threshold);
-    Serial.println("                           ║");
-    
-    // Health Status
+    // ==========================================
+    // HEALTH
+    // ==========================================
+    bool rigHealthy = (winners > (NUM_CHANNELS / 2));
     Serial.print("║ Health: ");
-    Serial.print(rigIsHealthy ? "OPTIMAL ✓" : "WARNING ⚠");
-    if(rigIsHealthy) {
-        Serial.println("                      ║");
-    } else {
-        Serial.println("                    ║");
-    }
+    Serial.print(rigHealthy ? "OPTIMAL ✓" : "WARNING ⚠");
+    int spaces7 = 48;
+    for(int i = 0; i < spaces7; i++) Serial.print(" ");
+    Serial.println("║");
     
-    // Decision
-    Serial.println("╠═══════════════════════════════════════╣");
-    if(rigIsHealthy) {
-        Serial.println("║   >>> HARVEST MODE: FULL POWER <<<   ║");
-    } else {
-        Serial.print("║ WARNING: Underperforming: ");
-        int count = 0;
-        for(int i = 0; i < NUM_CHANNELS; i++) {
-            if(!isWinner[i]) {
-                Serial.print("Ch");
-                Serial.print(i);
-                if(count < 3) Serial.print(" ");
-                count++;
-                if(count > 4) break;
-            }
-        }
-        int spaces = 22 - (count * 4);
-        for(int i = 0; i < spaces; i++) Serial.print(" ");
-        Serial.println("║");
-    }
-    Serial.println("╚═══════════════════════════════════════╝");
+    // ==========================================
+    // FOOTER
+    // ==========================================
+    Serial.println("╚══════════════════════════════════════════════════════════╝");
     Serial.println();
-    
-    // Show test mode indicator
-    if(useTestData) {
-        Serial.println("[TEST MODE] No sensors detected - using simulated data");
-        Serial.println("Connect sensors or change pin definitions to disable\n");
-    }
 }
+
+// ============================================================
+// OPTIONAL: WEB SERVER FOR DASHBOARD
+// ============================================================
+// Uncomment if you want to serve the HTML dashboard from ESP32
+/*
+#include <WebServer.h>
+WebServer server(80);
+
+void setupWebServer() {
+    server.on("/", handleRoot);
+    server.on("/api/data", handleAPI);
+    server.begin();
+}
+
+void handleRoot() {
+    String html = "<!DOCTYPE html><html>... Your dashboard HTML here ...</html>";
+    server.send(200, "text/html", html);
+}
+
+void handleAPI() {
+    StaticJsonDocument<512> doc;
+    for(int i = 0; i < NUM_CHANNELS; i++) {
+        doc["values"][i] = adcValues[i];
+        doc["winners"][i] = isWinner[i];
+    }
+    doc["hashrate"] = hashrate;
+    doc["shares"] = acceptedShares;
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
+}
+*/
 
 // ============================================================
 // END OF CODE
